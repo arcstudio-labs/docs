@@ -1,0 +1,107 @@
+---
+title: "API Authentication: Keys, Headers, and Best Practices"
+sidebarTitle: "Authentication"
+description: "Learn how to generate API keys, attach them to every request using the Authorization header, rotate credentials safely, and handle auth errors."
+---
+
+Every request you make to the API must be authenticated. Authentication is handled with API keys — long-lived tokens that identify your account and authorize access to your resources. You attach the key to each request using a standard HTTP `Authorization` header with the `Bearer` scheme. There are no cookies, sessions, or OAuth flows required for server-to-server API access.
+
+## Getting your API key
+
+Your API keys are managed from the dashboard. Follow these steps to generate one:
+
+<Steps>
+  <Step title="Open API key settings">
+    Log in to your dashboard and navigate to **Settings → API Keys**.
+  </Step>
+  <Step title="Generate a new key">
+    Click **Generate new key**. Give your key a meaningful name that describes where or how it will be used — for example, `production-backend` or `ci-pipeline`.
+  </Step>
+  <Step title="Copy and store the key">
+    Your full key is shown **only once** immediately after generation. Copy it and store it securely in a password manager or secret management system (such as AWS Secrets Manager, HashiCorp Vault, or a `.env` file that is not committed to version control).
+  </Step>
+</Steps>
+
+You can generate multiple keys — for example, one per environment or one per service — and revoke any of them independently at any time.
+
+## Using your API key
+
+Pass your API key in the `Authorization` header of every HTTP request using the `Bearer` token scheme:
+
+```http
+Authorization: Bearer YOUR_API_KEY
+```
+
+The examples below show how to do this in the most common tools and languages.
+
+<CodeGroup>
+  ```bash curl
+  curl https://api.example.com/v1/resources \
+    -H "Authorization: Bearer YOUR_API_KEY"
+  ```
+
+  ```python Python
+  import requests
+
+  url = "https://api.example.com/v1/resources"
+  headers = {
+      "Authorization": "Bearer YOUR_API_KEY"
+  }
+
+  response = requests.get(url, headers=headers)
+  print(response.json())
+  ```
+
+  ```javascript Node.js
+  const response = await fetch("https://api.example.com/v1/resources", {
+    method: "GET",
+    headers: {
+      Authorization: "Bearer YOUR_API_KEY",
+    },
+  });
+
+  const data = await response.json();
+  console.log(data);
+  ```
+</CodeGroup>
+
+<Tip>
+  Store your API key in an environment variable (for example, `API_KEY`) and reference it in your code rather than hard-coding the value. This makes it easy to rotate keys and prevents accidental exposure.
+</Tip>
+
+## Keeping your key secure
+
+API keys grant full access to your account's resources, so treat them with the same care as a password.
+
+<Warning>
+  **Never expose your API key in client-side code, public repositories, or anywhere else visible to end users.** If a key is committed to a public Git repository or embedded in a frontend bundle, revoke it immediately and generate a replacement. Once a key is compromised, any requests made with it are indistinguishable from legitimate ones.
+</Warning>
+
+Follow these practices to keep your keys safe:
+
+- **Use environment variables.** Load keys from environment variables or a secrets manager at runtime — never hard-code them in source files.
+- **One key per environment.** Use separate keys for development, staging, and production so a leaked dev key doesn't affect production.
+- **Restrict access.** Only give API keys to the systems and people who actually need them.
+- **Audit regularly.** Review your active keys periodically and revoke any that are no longer in use.
+
+## Rotating your API key
+
+If you suspect a key has been compromised, or as part of a regular security rotation policy, you can revoke an existing key and replace it with a new one from the **Settings → API Keys** page in your dashboard.
+
+To rotate without downtime:
+
+1. Generate a new key from the dashboard.
+2. Deploy the new key to all services that use it.
+3. Verify that your services are functioning correctly with the new key.
+4. Revoke the old key from the dashboard.
+
+## Authentication errors
+
+If your request is not properly authenticated, the API returns one of the following error responses:
+
+| HTTP Status | Error | Cause |
+|---|---|---|
+| `401 Unauthorized` | `missing_api_key` | The `Authorization` header was not included in the request. |
+| `403 Forbidden` | `invalid_api_key` | The API key provided is incorrect, has been revoked, or belongs to a different account. |
+
+When you receive a `401` or `403`, double-check that you're including the `Authorization` header and that the key value is correct and has not been revoked.

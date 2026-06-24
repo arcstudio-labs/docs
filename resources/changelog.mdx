@@ -1,0 +1,165 @@
+---
+title: "API Changelog — Latest Updates, Fixes, and Breaking Changes"
+sidebarTitle: "Changelog"
+description: "Stay up to date with every API release. Track new features, deprecations, and breaking changes so your integration always runs smoothly."
+---
+
+Follow this changelog to stay informed about every update to the API — from new features and performance improvements to deprecations and breaking changes. Reviewing entries before upgrading your integration helps you avoid unexpected failures and take advantage of the latest capabilities as soon as they ship.
+
+<Note>
+  **Subscribe to updates.** Bookmark this page and check back before each deployment. If the API exposes a status or announcement channel, watching it ensures you never miss a critical release notice.
+</Note>
+
+---
+
+## January 15, 2025 — `v2.1.0` <br /> <sub>New Features</sub>
+
+This release focuses on developer experience improvements: more expressive pagination, richer webhook coverage, and clearer error reporting.
+
+### Cursor-Based Pagination
+
+List endpoints now support cursor-based pagination in addition to offset pagination. Use the `cursor` query parameter with the value returned in `meta.next_cursor` to move through result sets without duplicates or skipped records.
+
+```http
+GET /resources?cursor=eyJpZCI6MTIzfQ&limit=50
+```
+
+```json
+{
+  "data": [...],
+  "meta": {
+    "next_cursor": "eyJpZCI6MTczfQ",
+    "has_more": true
+  }
+}
+```
+
+<Tip>
+  Cursor-based pagination is strongly recommended for large or frequently updated collections. Offset pagination remains available but may return inconsistent results when records are inserted or deleted between requests.
+</Tip>
+
+### New Webhook Event Types
+
+Three new event types are available for webhook subscriptions:
+
+| Event | Fired when… |
+|---|---|
+| `resource.created` | A new resource is successfully created |
+| `resource.updated` | Any field on an existing resource changes |
+| `resource.deleted` | A resource is permanently deleted |
+
+Register for these events in your webhook configuration or by passing them in the `events` array when creating a webhook endpoint via the API.
+
+### Improved Error Messages with `details` Field
+
+All `4xx` and `5xx` error responses now include an optional `details` array that enumerates field-level validation failures and machine-readable error codes alongside the top-level `message`.
+
+```json
+{
+  "error": {
+    "code": "validation_failed",
+    "message": "The request body contains invalid fields.",
+    "details": [
+      {
+        "field": "email",
+        "issue": "must be a valid email address"
+      },
+      {
+        "field": "amount",
+        "issue": "must be a positive integer"
+      }
+    ],
+    "request_id": "req_01HX9Z3KPQR7YBN2VW4DCTM8S"
+  }
+}
+```
+
+---
+
+## November 1, 2024 — `v2.0.0` <br /> <sub>Breaking Changes</sub>
+
+<Warning>
+  **v2.0.0 introduces breaking changes.** All integrations built against the v1 API must be migrated before the v1 sunset date. Update your base URL, adapt to the new response envelope, and remove any calls to `/v1/legacy` endpoints. Test thoroughly in a non-production environment before cutting over.
+</Warning>
+
+### New Base URL
+
+The API has migrated to a versioned base URL. Update every request in your codebase:
+
+```diff
+- https://api.example.com/v1
++ https://api.example.com/v2
+```
+
+### Removed: `/v1/legacy` Endpoints
+
+All endpoints under the `/v1/legacy` path have been permanently removed. Refer to the [API Reference](/api-reference/overview) for the canonical v2 equivalents. There is no redirect or fallback — requests to removed paths return `410 Gone`.
+
+### New Response Envelope Format
+
+Every v2 response wraps its payload in a consistent envelope. Update your deserialization logic accordingly:
+
+```json
+{
+  "data": { ... },
+  "meta": {
+    "request_id": "req_01HX9Z3KPQR7YBN2VW4DCTM8S",
+    "timestamp": "2024-11-01T10:00:00Z"
+  }
+}
+```
+
+Previously, response bodies returned the resource object directly at the top level. The `data` key is now always present on success, and `error` is always present on failure — never both.
+
+---
+
+## August 20, 2024 — `v1.5.0` <br /> <sub>New Features</sub>
+
+This release brings rate limit visibility and broader HTTP method support to help you build more resilient integrations.
+
+### Rate Limit Response Headers
+
+Every API response now includes the following headers so you can monitor consumption and back off proactively:
+
+| Header | Description |
+|---|---|
+| `X-RateLimit-Limit` | Total requests allowed in the current window |
+| `X-RateLimit-Remaining` | Requests remaining before you are throttled |
+| `X-RateLimit-Reset` | Unix timestamp (UTC) when the window resets |
+
+```http
+HTTP/1.1 200 OK
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 842
+X-RateLimit-Reset: 1724198400
+```
+
+<Tip>
+  Read `X-RateLimit-Remaining` on every response and pause requests when it approaches zero. When you receive a `429 Too Many Requests`, wait until the time indicated by `X-RateLimit-Reset` before retrying.
+</Tip>
+
+### `PATCH` Method Support
+
+Resource endpoints now accept `PATCH` requests for partial updates. You no longer need to send the full object body when modifying a single field — include only the fields you want to change.
+
+```http
+PATCH /v1/resources/{id}
+Content-Type: application/json
+
+{
+  "status": "inactive"
+}
+```
+
+`PUT` remains available for full replacement. Use `PATCH` when you want to make targeted edits without overwriting fields you did not fetch.
+
+---
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Browse all available endpoints, parameters, and response schemas.
+  </Card>
+  <Card title="Versioning Policy" icon="arrow-right" href="/api-reference/versioning">
+    Learn about API versioning and the deprecation policy.
+  </Card>
+</CardGroup>

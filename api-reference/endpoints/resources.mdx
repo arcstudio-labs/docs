@@ -1,0 +1,428 @@
+---
+title: "Resources Endpoints — Full CRUD Operations Reference"
+sidebarTitle: "Resources"
+description: "Create, list, retrieve, update, and delete resources via /v1/resources. All five CRUD endpoints require a valid bearer token in the header."
+---
+
+The `/v1/resources` endpoints give you full CRUD control over resources in your account. A resource is the core object in the API — it has a name, an optional description, and a free-form metadata object you can use to attach any key/value data your application needs. Every resource is assigned a UUID at creation time and carries `created_at` and `updated_at` timestamps so you can track changes over time.
+
+---
+
+## Resource object schema
+
+Every endpoint that returns a resource — or an array of resources — uses the following shape.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the resource (UUID v4), e.g. `"res_01j2k3m4n5p6q7r8s9t0"`.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Human-readable name of the resource. Maximum 255 characters.
+</ResponseField>
+
+<ResponseField name="description" type="string | null">
+  Optional free-text description. Returns `null` when not set.
+</ResponseField>
+
+<ResponseField name="metadata" type="object">
+  Arbitrary key/value pairs you attach to the resource. Keys and values must both be strings. Maximum 50 keys per object.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of when the resource was created, e.g. `"2024-09-15T10:00:00Z"`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  ISO 8601 timestamp of the most recent update to the resource, e.g. `"2024-09-15T12:30:00Z"`.
+</ResponseField>
+
+---
+
+## GET /v1/resources
+
+Retrieve a paginated list of all resources in your account, ordered by `created_at` descending (newest first).
+
+### Query parameters
+
+<ParamField query="limit" type="integer">
+  Number of resources to return per page. Defaults to `20`. Maximum value is `100`. Use a smaller limit if your integration processes results one-by-one to reduce memory pressure.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Opaque pagination cursor returned as `next_cursor` in the previous response. Pass this value to fetch the next page. Omit it to start from the beginning.
+</ParamField>
+
+<ParamField query="filter" type="string">
+  Optional filter expression applied to the `name` and `description` fields. The API performs a case-insensitive substring match, e.g. `filter=invoice` returns all resources whose name or description contains "invoice".
+</ParamField>
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url 'https://api.example.com/v1/resources?limit=2&cursor=&filter=invoice' \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://api.example.com/v1/resources",
+    headers={"Authorization": "Bearer <access_token>"},
+    params={"limit": 2, "filter": "invoice"},
+)
+data = response.json()
+```
+
+```javascript Node.js
+const response = await fetch(
+  "https://api.example.com/v1/resources?limit=2&filter=invoice",
+  { headers: { Authorization: "Bearer <access_token>" } }
+);
+const data = await response.json();
+```
+
+</CodeGroup>
+
+### Example response
+
+```json 200 OK
+{
+  "data": [
+    {
+      "id": "res_01j2k3m4n5p6q7r8s9t0",
+      "name": "Monthly Invoice",
+      "description": "Auto-generated invoice for September 2024",
+      "metadata": {
+        "client_id": "cli_abc123",
+        "period": "2024-09"
+      },
+      "created_at": "2024-09-15T10:00:00Z",
+      "updated_at": "2024-09-15T10:00:00Z"
+    },
+    {
+      "id": "res_02a3b4c5d6e7f8g9h0i1",
+      "name": "Invoice Template",
+      "description": null,
+      "metadata": {},
+      "created_at": "2024-09-14T08:00:00Z",
+      "updated_at": "2024-09-14T09:15:00Z"
+    }
+  ],
+  "next_cursor": "cur_eyJpZCI6InJlc18wMiJ9",
+  "has_more": true
+}
+```
+
+<Note>
+  When `has_more` is `false`, you have reached the last page and `next_cursor` will be `null`. Your pagination loop should stop at this point.
+</Note>
+
+---
+
+## POST /v1/resources
+
+Create a new resource. A successful request returns the full resource object with a `201 Created` status.
+
+### Body parameters
+
+<ParamField body="name" type="string" required>
+  Name for the new resource. Must be between 1 and 255 characters. Names do not need to be unique within your account.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description. Maximum 1000 characters. Omit the field entirely or pass `null` to leave it blank.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Arbitrary string key/value pairs to attach to the resource. Maximum 50 keys. Both keys and values must be strings.
+
+  <Expandable title="metadata example">
+    ```json
+    {
+      "environment": "production",
+      "owner": "team-platform",
+      "cost_center": "CC-042"
+    }
+    ```
+  </Expandable>
+</ParamField>
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.example.com/v1/resources \
+  --header 'Authorization: Bearer <access_token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "name": "Monthly Invoice",
+    "description": "Auto-generated invoice for September 2024",
+    "metadata": {
+      "client_id": "cli_abc123",
+      "period": "2024-09"
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.example.com/v1/resources",
+    headers={"Authorization": "Bearer <access_token>"},
+    json={
+        "name": "Monthly Invoice",
+        "description": "Auto-generated invoice for September 2024",
+        "metadata": {"client_id": "cli_abc123", "period": "2024-09"},
+    },
+)
+resource = response.json()  # 201 Created
+```
+
+```javascript Node.js
+const response = await fetch("https://api.example.com/v1/resources", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer <access_token>",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name: "Monthly Invoice",
+    description: "Auto-generated invoice for September 2024",
+    metadata: { client_id: "cli_abc123", period: "2024-09" },
+  }),
+});
+const resource = await response.json(); // 201 Created
+```
+
+</CodeGroup>
+
+### Example response
+
+```json 201 Created
+{
+  "id": "res_01j2k3m4n5p6q7r8s9t0",
+  "name": "Monthly Invoice",
+  "description": "Auto-generated invoice for September 2024",
+  "metadata": {
+    "client_id": "cli_abc123",
+    "period": "2024-09"
+  },
+  "created_at": "2024-09-15T10:00:00Z",
+  "updated_at": "2024-09-15T10:00:00Z"
+}
+```
+
+---
+
+## GET /v1/resources/:id
+
+Retrieve a single resource by its unique ID.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the resource to retrieve, e.g. `res_01j2k3m4n5p6q7r8s9t0`.
+</ParamField>
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0 \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0",
+    headers={"Authorization": "Bearer <access_token>"},
+)
+resource = response.json()  # 200 OK
+```
+
+```javascript Node.js
+const response = await fetch(
+  "https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0",
+  { headers: { Authorization: "Bearer <access_token>" } }
+);
+const resource = await response.json(); // 200 OK
+```
+
+</CodeGroup>
+
+### Example response
+
+```json 200 OK
+{
+  "id": "res_01j2k3m4n5p6q7r8s9t0",
+  "name": "Monthly Invoice",
+  "description": "Auto-generated invoice for September 2024",
+  "metadata": {
+    "client_id": "cli_abc123",
+    "period": "2024-09"
+  },
+  "created_at": "2024-09-15T10:00:00Z",
+  "updated_at": "2024-09-15T10:00:00Z"
+}
+```
+
+---
+
+## PUT /v1/resources/:id
+
+Replace all mutable fields on an existing resource. You must supply every body field you want to keep — any field you omit is reset to its default value (empty string or `null`). To perform a partial update, fetch the resource first and merge your changes before calling this endpoint.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the resource to update, e.g. `res_01j2k3m4n5p6q7r8s9t0`.
+</ParamField>
+
+### Body parameters
+
+<ParamField body="name" type="string" required>
+  Updated name for the resource (1–255 characters).
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description. Pass `null` to clear an existing description.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Replacement metadata object. This fully replaces the existing metadata — it is not merged. Pass an empty object `{}` to clear all metadata keys.
+</ParamField>
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request PUT \
+  --url https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0 \
+  --header 'Authorization: Bearer <access_token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "name": "Monthly Invoice (Revised)",
+    "description": "Revised invoice for September 2024",
+    "metadata": {
+      "client_id": "cli_abc123",
+      "period": "2024-09",
+      "revised": "true"
+    }
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.put(
+    "https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0",
+    headers={"Authorization": "Bearer <access_token>"},
+    json={
+        "name": "Monthly Invoice (Revised)",
+        "description": "Revised invoice for September 2024",
+        "metadata": {"client_id": "cli_abc123", "period": "2024-09", "revised": "true"},
+    },
+)
+updated = response.json()  # 200 OK
+```
+
+```javascript Node.js
+const response = await fetch(
+  "https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0",
+  {
+    method: "PUT",
+    headers: {
+      Authorization: "Bearer <access_token>",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: "Monthly Invoice (Revised)",
+      description: "Revised invoice for September 2024",
+      metadata: { client_id: "cli_abc123", period: "2024-09", revised: "true" },
+    }),
+  }
+);
+const updated = await response.json(); // 200 OK
+```
+
+</CodeGroup>
+
+### Example response
+
+```json 200 OK
+{
+  "id": "res_01j2k3m4n5p6q7r8s9t0",
+  "name": "Monthly Invoice (Revised)",
+  "description": "Revised invoice for September 2024",
+  "metadata": {
+    "client_id": "cli_abc123",
+    "period": "2024-09",
+    "revised": "true"
+  },
+  "created_at": "2024-09-15T10:00:00Z",
+  "updated_at": "2024-09-15T13:45:00Z"
+}
+```
+
+---
+
+## DELETE /v1/resources/:id
+
+Permanently delete a resource. This action cannot be undone.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the resource to delete, e.g. `res_01j2k3m4n5p6q7r8s9t0`.
+</ParamField>
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request DELETE \
+  --url https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0 \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+```python Python
+import requests
+
+requests.delete(
+    "https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0",
+    headers={"Authorization": "Bearer <access_token>"},
+)
+# 204 No Content — no response body
+```
+
+```javascript Node.js
+await fetch(
+  "https://api.example.com/v1/resources/res_01j2k3m4n5p6q7r8s9t0",
+  {
+    method: "DELETE",
+    headers: { Authorization: "Bearer <access_token>" },
+  }
+);
+// 204 No Content — no response body
+```
+
+</CodeGroup>
+
+A successful deletion returns **`204 No Content`** with an empty body. Attempting to delete a resource that does not exist returns `404 Not Found`.
+
+<Warning>
+  **Deletion is permanent and cannot be reversed.** All data associated with the resource — including its metadata — is immediately removed from our systems. If your application depends on this resource, ensure you have taken a backup or migrated any references before calling this endpoint.
+</Warning>

@@ -1,0 +1,91 @@
+{
+  "projectType": "api-service",
+  "projectName": "API Docs",
+  "projectDescription": "A REST API platform providing developer-facing endpoints for building and integrating applications.",
+  "theme": "luma",
+  "primaryColor": "#ef7025",
+  "lightColor": "#eec9bc",
+  "darkColor": "#4fa1ab",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/requests",
+              "concepts/responses",
+              "concepts/errors",
+              "concepts/pagination"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/first-api-call",
+              "guides/rate-limits",
+              "guides/webhooks",
+              "guides/sdks"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/changelog",
+              "resources/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/base-url",
+              "api-reference/versioning"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api-reference/endpoints/authentication",
+              "api-reference/endpoints/resources",
+              "api-reference/endpoints/webhooks"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "REST API with JSON responses",
+    "API key and OAuth 2.0 authentication",
+    "Webhook event delivery",
+    "Pagination and filtering",
+    "Rate limiting with retry guidance",
+    "Versioned endpoints",
+    "Comprehensive error codes"
+  ],
+  "publicApiSurface": [
+    "GET /v1/resources",
+    "POST /v1/resources",
+    "GET /v1/resources/:id",
+    "PUT /v1/resources/:id",
+    "DELETE /v1/resources/:id",
+    "POST /v1/webhooks",
+    "GET /v1/webhooks",
+    "POST /v1/auth/token"
+  ]
+}

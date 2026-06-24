@@ -1,0 +1,160 @@
+---
+title: "How API Rate Limits Work and How to Handle 429 Errors"
+sidebarTitle: "Rate Limits"
+description: "Learn how API rate limits work, how to read the rate-limit response headers, and how to write resilient retry logic that handles 429 errors gracefully."
+---
+
+Rate limits protect the API's reliability for every user by preventing any single client from consuming a disproportionate share of capacity. Understanding how limits are enforced — and writing code that respects them — is essential for building integrations that stay healthy in production.
+
+## Default limits
+
+Every API key is subject to a default quota of **1,000 requests per minute**. This limit is applied on a rolling 60-second window, not a fixed clock interval.
+
+| Plan | Requests per minute |
+|---|---|
+| Free | 100 |
+| Starter | 500 |
+| Pro | 1,000 |
+| Enterprise | Custom |
+
+Limits are counted per API key, not per IP address. If you run multiple services sharing the same key, their combined traffic counts toward the same quota.
+
+## Rate limit response headers
+
+Every API response includes three headers that tell you exactly where you stand against your quota. Check these headers in your client to make proactive decisions before you hit the limit.
+
+| Header | Type | Description |
+|---|---|---|
+| `X-RateLimit-Limit` | Integer | The maximum number of requests allowed in the current window. |
+| `X-RateLimit-Remaining` | Integer | The number of requests you have left in the current window. |
+| `X-RateLimit-Reset` | Unix timestamp | The UTC time (seconds since epoch) when the current window resets and `X-RateLimit-Remaining` returns to the full limit. |
+
+Here is an example response showing a client that has used 200 of its 1,000 available requests:
+
+```http
+HTTP/1.1 200 OK
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 800
+X-RateLimit-Reset: 1717243260
+Content-Type: application/json
+```
+
+To calculate how many seconds remain until the window resets, subtract the current UTC epoch time from `X-RateLimit-Reset`.
+
+## When you exceed the limit
+
+If you exceed your quota, the API returns a `429 Too Many Requests` response and stops processing the request. The body includes a machine-readable error code and a human-readable message:
+
+```json
+{
+  "error": {
+    "code": "rate_limit_exceeded",
+    "message": "You have exceeded your request quota of 1000 requests per minute. Please wait before retrying."
+  },
+  "meta": {
+    "request_id": "req_7f3a1c9e2b",
+    "timestamp": "2024-06-01T12:05:37Z"
+  }
+}
+```
+
+The response also includes a `Retry-After` header containing the number of seconds you must wait before sending another request:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 23
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1717243260
+```
+
+<Warning>
+  Do **not** retry immediately after receiving a `429` response. Sending follow-up requests before the `Retry-After` window has elapsed will not succeed and may result in your key being temporarily suspended. Always honour the `Retry-After` value.
+</Warning>
+
+## Implementing retry logic
+
+The recommended approach is **exponential backoff with jitter** — wait progressively longer between retries, and add a small random offset to prevent multiple clients from thundering-herd retrying at the same instant.
+
+<CodeGroup>
+
+```python Python
+import time
+import random
+import requests
+
+def api_request_with_backoff(url: str, headers: dict, max_retries: int = 5) -> dict:
+    """Make a GET request with exponential backoff on 429 responses."""
+    for attempt in range(max_retries):
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 2 ** attempt))
+            # Add jitter: sleep for retry_after plus up to 1 extra second
+            sleep_time = retry_after + random.uniform(0, 1)
+            print(f"Rate limited. Retrying in {sleep_time:.1f}s (attempt {attempt + 1}/{max_retries})")
+            time.sleep(sleep_time)
+            continue
+
+        response.raise_for_status()
+        return response.json()
+
+    raise Exception(f"Request failed after {max_retries} retries due to rate limiting.")
+
+
+# Usage
+headers = {"Authorization": "Bearer YOUR_API_KEY"}
+data = api_request_with_backoff("https://api.example.com/v1/resources", headers)
+print(data)
+```
+
+```javascript Node.js
+import axios from "axios";
+
+async function apiRequestWithBackoff(url, headers, maxRetries = 5) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await axios.get(url, { headers });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 429) {
+        const retryAfter = parseInt(
+          error.response.headers["retry-after"] ?? String(2 ** attempt),
+          10
+        );
+        // Add jitter: wait retryAfter seconds plus up to 1 extra second
+        const sleepMs = (retryAfter + Math.random()) * 1000;
+        console.log(
+          `Rate limited. Retrying in ${(sleepMs / 1000).toFixed(1)}s ` +
+          `(attempt ${attempt + 1}/${maxRetries})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, sleepMs));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error(`Request failed after ${maxRetries} retries due to rate limiting.`);
+}
+
+// Usage
+const headers = { Authorization: "Bearer YOUR_API_KEY" };
+const data = await apiRequestWithBackoff("https://api.example.com/v1/resources", headers);
+console.log(data);
+```
+
+</CodeGroup>
+
+## Best practices
+
+Following these practices will help you stay well within your quota and avoid disruptions:
+
+- **Cache responses whenever possible.** If a resource doesn't change frequently, store the response locally and serve it from your cache rather than re-fetching it on every user request.
+- **Batch requests.** When you need to process many items, use bulk endpoints (where available) instead of looping over individual resource requests.
+- **Use webhooks for real-time data.** Instead of polling the API on a short interval to detect changes, [register a webhook endpoint](/guides/webhooks) and let the API push events to you the moment something changes.
+- **Monitor `X-RateLimit-Remaining` proactively.** Add logging or alerting when remaining capacity drops below a threshold (for example, 20%) so you can slow down before hitting the limit.
+- **Distribute traffic evenly.** Avoid scheduling jobs that send bursts of requests all at once (for example, a cron job that fires 500 requests simultaneously at the top of the hour). Add a small delay between batches to smooth the curve.
+
+<Tip>
+  If your integration regularly approaches the default limit, you may be eligible for a higher quota. Contact [support@example.com](mailto:support@example.com) with a description of your use case and your current usage patterns, and the team can discuss a plan upgrade or custom limit.
+</Tip>

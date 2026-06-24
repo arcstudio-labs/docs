@@ -1,0 +1,124 @@
+---
+title: "API Versioning Policy — Breaking Changes and Migrations"
+sidebarTitle: "Versioning"
+description: "Understand how API versions work, what counts as a breaking change, and how to migrate your integration when a new version is released."
+---
+
+The API uses explicit URL-based versioning to ensure your integration never breaks unexpectedly when the API evolves. Every endpoint URL contains a version segment — for example, `/v1/resources` — so you always know exactly which contract your code is running against. The current stable version is **v1**.
+
+## Versioning scheme
+
+The version identifier sits immediately after the base hostname in every request URL:
+
+```text
+https://api.example.com/{version}/{resource}
+```
+
+For example:
+
+```bash
+# v1 — current stable version
+curl https://api.example.com/v1/resources
+
+# v2 — hypothetical next major version
+curl https://api.example.com/v2/resources
+```
+
+When a new major version is published, the previous version continues to function normally until it reaches end-of-life. You choose when to migrate.
+
+## Breaking vs. non-breaking changes
+
+Not every change to the API requires a new version number. The table below defines what the API team considers breaking and non-breaking so you can set your integration's risk tolerance accordingly.
+
+| Change type | Version bump? | Examples |
+|---|---|---|
+| **Non-breaking** | ✅ No | New optional request fields, new response fields, new endpoints, new webhook event types, new enum values added to an existing field |
+| **Breaking** | 🚨 Yes | Removed or renamed fields, changed field data types, changed required fields, renamed or removed endpoints, changed authentication scheme |
+
+<Tip>
+  Write your deserialization code defensively — ignore unknown fields in
+  responses rather than treating them as errors. This makes your integration
+  resilient to non-breaking additions and reduces the surface area of changes
+  that could affect you.
+</Tip>
+
+## Deprecation policy
+
+When a version is marked deprecated, it enters a **12-month support window** before it reaches end-of-life. During this window the deprecated version continues to function exactly as documented, giving you time to migrate at your own pace. You will receive advance notice through:
+
+- An entry in the public [changelog](/resources/changelog) at the time of deprecation
+- An email to the address on your account at the time of deprecation
+- A second reminder email **90 days** before end-of-life
+
+After the 12-month window closes, the deprecated version returns `410 Gone` for all requests.
+
+## Migrating between versions
+
+When a new major version is released, the migration guide in the changelog details every breaking change. The tabs below show a representative example of how a request and its response might differ between v1 and v2.
+
+<Tabs>
+  <Tab title="v1 Request">
+    ```bash
+    curl https://api.example.com/v1/resources \
+      --request POST \
+      --header "Authorization: Bearer <token>" \
+      --header "Content-Type: application/json" \
+      --data '{
+        "name": "My Resource",
+        "type": "example",
+        "meta": {
+          "label": "primary"
+        }
+      }'
+    ```
+  </Tab>
+  <Tab title="v2 Request">
+    ```bash
+    curl https://api.example.com/v2/resources \
+      --request POST \
+      --header "Authorization: Bearer <token>" \
+      --header "Content-Type: application/json" \
+      --data '{
+        "name": "My Resource",
+        "kind": "example",
+        "tags": ["primary"]
+      }'
+    ```
+
+    > **What changed:** `type` was renamed to `kind`; the `meta.label` string was replaced by a `tags` array.
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="v1 Response">
+    ```json
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "name": "My Resource",
+      "type": "example",
+      "meta": {
+        "label": "primary"
+      },
+      "created_at": "2024-06-15T10:30:00Z"
+    }
+    ```
+  </Tab>
+  <Tab title="v2 Response">
+    ```json
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "name": "My Resource",
+      "kind": "example",
+      "tags": ["primary"],
+      "created_at": "2024-06-15T10:30:00Z"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  If your HTTP client or proxy layer needs to identify the API version without
+  inspecting the URL, you can also pass the `API-Version` request header — for
+  example, `API-Version: v1`. When the header and the URL version disagree, the
+  URL path takes precedence.
+</Note>

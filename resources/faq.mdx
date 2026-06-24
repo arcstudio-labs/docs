@@ -1,0 +1,279 @@
+---
+title: "API Integration FAQ: Authentication, Limits, and Webhooks"
+sidebarTitle: "FAQ"
+description: "Answers to the most common questions about authentication, requests, rate limits, and webhooks — everything you need to integrate with confidence."
+---
+
+This page collects answers to the questions developers ask most often when building on top of the API. If you are just getting started, the Authentication and Requests sections are the best places to begin. For production concerns like throughput and reliability, jump straight to Rate Limits and Webhooks. If your question is not covered here, reach out through the support channel listed in your dashboard.
+
+---
+
+## Authentication & Keys
+
+<AccordionGroup>
+
+  <Accordion title="How do I get an API key?">
+    Log in to your dashboard and navigate to **Settings → API Keys**. Click **Create New Key**, give it a descriptive label (for example, `production-backend` or `staging-tests`), and copy the secret immediately — it is shown only once.
+
+    Store the key in an environment variable or a secrets manager. Never hard-code it in source files or commit it to version control.
+
+    ```bash
+    export API_KEY="sk_live_..."
+    ```
+
+    Pass the key on every request using the `Authorization` header:
+
+    ```http
+    Authorization: Bearer sk_live_...
+    ```
+  </Accordion>
+
+  <Accordion title="Can I have multiple API keys?">
+    Yes. You can create as many keys as you need from the dashboard. Using separate keys for each environment (development, staging, production) and each application makes it easy to rotate or revoke access for one system without affecting the others.
+
+    Each key can be assigned a label and an optional expiry date. You can view all active keys and their last-used timestamps in **Settings → API Keys**.
+  </Accordion>
+
+  <Accordion title="What do I do if my API key is compromised?">
+    Revoke the key immediately from **Settings → API Keys** by clicking **Revoke** next to the affected key. Revocation takes effect within seconds — any in-flight request using that key will receive a `401 Unauthorized` response.
+
+    After revoking, generate a replacement key, update your environment variables or secrets store, and redeploy any affected services. Review your access logs for unexpected activity before and after the incident.
+
+    <Warning>
+      Do not attempt to "rotate" a compromised key by simply creating a new one without first revoking the old one. Both keys remain valid until the old one is explicitly revoked.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Why am I getting a 401 error?">
+    A `401 Unauthorized` response means the server could not authenticate your request. Common causes include:
+
+    - **Missing header** — Confirm that every request includes `Authorization: Bearer <your-key>`.
+    - **Incorrect key** — Check for extra whitespace, truncation, or copy-paste errors.
+    - **Revoked key** — The key may have been revoked manually or expired. Generate a new one from the dashboard.
+    - **Wrong environment** — A test key (`sk_test_...`) will be rejected on production endpoints and vice versa.
+
+    If you have verified all of the above and still receive `401`, open a support ticket and include the `request_id` from the error response body so the team can investigate.
+  </Accordion>
+
+</AccordionGroup>
+
+---
+
+## Requests & Responses
+
+<AccordionGroup>
+
+  <Accordion title="What is the base URL for the API?">
+    All v2 endpoints are served from:
+
+    ```text
+    https://api.example.com/v2
+    ```
+
+    Append the endpoint path to this base URL for every request. For example, to list resources:
+
+    ```http
+    GET https://api.example.com/v2/resources
+    ```
+
+    <Note>
+      The v1 base URL (`https://api.example.com/v1`) was deprecated with the release of v2.0.0. Legacy endpoints under `/v1/legacy` have been removed entirely. See the [Changelog](/resources/changelog) for details.
+    </Note>
+  </Accordion>
+
+  <Accordion title="What content types does the API accept?">
+    The API accepts and returns **JSON** exclusively. Set the following headers on every request that includes a body:
+
+    ```http
+    Content-Type: application/json
+    Accept: application/json
+    ```
+
+    Requests with a body but without `Content-Type: application/json` will receive a `415 Unsupported Media Type` response. `GET` and `DELETE` requests do not require a `Content-Type` header.
+  </Accordion>
+
+  <Accordion title="How do I handle pagination?">
+    List endpoints support two pagination strategies:
+
+    **Cursor-based (recommended):** Pass `cursor` and `limit` as query parameters. The response `meta` object contains `next_cursor` and `has_more`.
+
+    ```http
+    GET /resources?cursor=eyJpZCI6MTIzfQ&limit=50
+    ```
+
+    ```json
+    {
+      "data": [...],
+      "meta": {
+        "next_cursor": "eyJpZCI6MTczfQ",
+        "has_more": true
+      }
+    }
+    ```
+
+    Continue fetching pages by passing `meta.next_cursor` as the `cursor` parameter on your next request. Stop when `has_more` is `false`.
+
+    **Offset-based:** Pass `page` and `per_page` as query parameters. This method may return duplicate or skipped records if data changes between requests, so cursor-based pagination is preferred for large or dynamic collections.
+
+    <Tip>
+      Always check `has_more` rather than checking whether the `data` array is empty — the final page may still contain results.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="What does the request_id in responses do?">
+    Every response includes a `request_id` field inside the `meta` envelope (or inside the `error` object on failure). This is a unique identifier assigned to your specific request by the API infrastructure.
+
+    ```json
+    {
+      "meta": {
+        "request_id": "req_01HX9Z3KPQR7YBN2VW4DCTM8S",
+        "timestamp": "2025-01-15T14:22:00Z"
+      }
+    }
+    ```
+
+    Always include the `request_id` when contacting support or filing a bug report. It allows the team to locate the exact request in the server logs, including timing data, the processed input, and any internal errors that occurred.
+  </Accordion>
+
+</AccordionGroup>
+
+---
+
+## Rate Limits & Quotas
+
+<AccordionGroup>
+
+  <Accordion title="What are the default rate limits?">
+    Default rate limits vary by plan. All plans share the same header-based visibility — check `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` on every response.
+
+    | Plan | Requests per minute |
+    |---|---|
+    | Free | 60 |
+    | Starter | 300 |
+    | Growth | 1 000 |
+    | Enterprise | Custom |
+
+    Limits are applied per API key. If you have multiple keys on the same account they each receive the full quota.
+  </Accordion>
+
+  <Accordion title="How do I request a rate limit increase?">
+    If you are on the Growth plan or higher and need a higher quota, open a request through your dashboard under **Settings → Rate Limits → Request Increase**. Provide your expected peak requests-per-minute, your use case, and your current key usage statistics.
+
+    Enterprise customers can negotiate custom rate limits as part of their service agreement. Contact your account manager or email support with the subject line `Rate Limit Increase — Enterprise`.
+  </Accordion>
+
+  <Accordion title="What happens if I exceed my rate limit?">
+    Once `X-RateLimit-Remaining` reaches `0`, the API returns `429 Too Many Requests` for subsequent requests until the window resets.
+
+    ```http
+    HTTP/1.1 429 Too Many Requests
+    X-RateLimit-Limit: 300
+    X-RateLimit-Remaining: 0
+    X-RateLimit-Reset: 1724198400
+    Retry-After: 23
+    ```
+
+    The `Retry-After` header tells you how many seconds to wait. Implement [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) in your retry logic to avoid a burst of retries that immediately triggers another `429`.
+
+    <Warning>
+      Repeated bursts of `429` responses can trigger a temporary IP-level block. Design your client to respect `X-RateLimit-Remaining` and slow down proactively rather than waiting for throttle responses.
+    </Warning>
+  </Accordion>
+
+</AccordionGroup>
+
+---
+
+## Webhooks
+
+<AccordionGroup>
+
+  <Accordion title="How do I verify a webhook signature?">
+    Every webhook delivery includes an `X-Webhook-Signature` header. This is an HMAC-SHA256 digest computed over the raw request body using your webhook secret as the key.
+
+    To verify it on your server:
+
+    1. Retrieve your webhook secret from **Settings → Webhooks**.
+    2. Compute `HMAC-SHA256(raw_body, secret)` and hex-encode the result.
+    3. Compare your computed digest to the value in `X-Webhook-Signature` using a constant-time comparison function.
+
+    ```python
+    import hmac
+    import hashlib
+
+    def verify_signature(raw_body: bytes, secret: str, header: str) -> bool:
+        expected = hmac.new(
+            secret.encode(),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+        return hmac.compare_digest(expected, header)
+    ```
+
+    <Warning>
+      Always use a constant-time comparison (such as `hmac.compare_digest` in Python) to prevent timing attacks. A regular string equality check (`==`) is not safe here.
+    </Warning>
+
+    Reject any delivery where the signature does not match — it may indicate a forged or tampered request.
+  </Accordion>
+
+  <Accordion title="What happens if my webhook endpoint is down?">
+    If your endpoint returns a non-`2xx` status code, times out, or is unreachable, the API automatically retries delivery using exponential backoff:
+
+    | Attempt | Delay |
+    |---|---|
+    | 1st retry | 1 minute |
+    | 2nd retry | 5 minutes |
+    | 3rd retry | 30 minutes |
+    | 4th retry | 2 hours |
+    | 5th retry | 8 hours |
+
+    After the fifth failed attempt the delivery is marked **failed** and no further retries occur. You can manually replay failed deliveries from the webhook log in your dashboard for up to 72 hours.
+
+    <Tip>
+      Respond with `200 OK` as quickly as possible — ideally before doing any heavy processing. Enqueue the event body and handle it asynchronously so your endpoint does not time out on slow operations.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Can I test webhooks locally?">
+    Yes. Because the API needs a publicly reachable URL, you can use a tunnelling tool to expose your local server during development.
+
+    **Using the CLI test mode:**
+
+    If the API provides a CLI, use the `webhooks forward` command to pipe events directly to your local port without a tunnel:
+
+    ```bash
+    api webhooks forward --event resource.created --url http://localhost:3000/webhooks
+    ```
+
+    **Using a tunnel (e.g. ngrok):**
+
+    ```bash
+    ngrok http 3000
+    ```
+
+    Copy the generated HTTPS URL (for example, `https://a1b2c3.ngrok.io`) and register it as a webhook endpoint in your dashboard. Deliveries will be forwarded to your local process in real time.
+
+    <Note>
+      Tunnel URLs are temporary. Remove them from your webhook configuration when you finish testing to avoid stale endpoints that fail silently in production.
+    </Note>
+  </Accordion>
+
+</AccordionGroup>
+
+---
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Learn how to generate, rotate, and secure your API keys.
+  </Card>
+  <Card title="Webhooks Guide" icon="webhook" href="/guides/webhooks">
+    Full reference for registering endpoints, event types, and signature verification.
+  </Card>
+  <Card title="Rate Limits" icon="gauge" href="/guides/rate-limits">
+    Understand quotas, headers, and strategies for staying within your limits.
+  </Card>
+  <Card title="Changelog" icon="clock" href="/resources/changelog">
+    Review every API release, including breaking changes and migration notes.
+  </Card>
+</CardGroup>

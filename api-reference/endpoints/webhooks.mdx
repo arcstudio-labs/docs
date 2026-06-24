@@ -1,0 +1,362 @@
+---
+title: "Webhooks Endpoints — Register and Manage Subscriptions"
+sidebarTitle: "Webhooks"
+description: "Register HTTPS endpoints to receive real-time event notifications. Manage, test, and delete webhook subscriptions through the /v1/webhooks endpoints."
+---
+
+Webhooks let your application receive real-time notifications whenever events occur in the API — for example, when a resource is created or deleted. Instead of polling, you register an HTTPS endpoint and the API sends an HTTP `POST` request to that URL each time a matching event fires. You can subscribe to one or many event types per webhook, optionally sign payloads with a shared secret, and use the built-in test endpoint to verify your receiver before going to production.
+
+---
+
+## Webhook object schema
+
+Every endpoint that returns a webhook uses the following shape.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the webhook (UUID v4), e.g. `"wh_01j2k3m4n5p6q7r8s9t0"`.
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  The HTTPS URL that receives event payloads.
+</ResponseField>
+
+<ResponseField name="events" type="array">
+  List of event type strings this webhook is subscribed to, e.g. `["resource.created", "resource.deleted"]`.
+</ResponseField>
+
+<ResponseField name="secret_hint" type="string">
+  The last four characters of the signing secret, e.g. `"...k9Qz"`. The full secret is only returned at creation time.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of when the webhook was registered.
+</ResponseField>
+
+---
+
+## POST /v1/webhooks
+
+Register a new webhook endpoint. On success the API returns the full webhook object, including the signing secret in plain text — **this is the only time the full secret is returned**, so store it immediately.
+
+### Body parameters
+
+<ParamField body="url" type="string" required>
+  The HTTPS endpoint URL that will receive event payloads. Plain HTTP URLs are rejected. The URL must respond with a `2xx` status code within 10 seconds or the delivery is marked as failed.
+</ParamField>
+
+<ParamField body="events" type="array" required>
+  An array of event type strings to subscribe to. Use `["*"]` to subscribe to all current and future event types. Example values:
+
+  <Expandable title="Available event types">
+    | Event type | Fired when |
+    |---|---|
+    | `resource.created` | A new resource is created |
+    | `resource.updated` | An existing resource is updated |
+    | `resource.deleted` | A resource is permanently deleted |
+    | `webhook.test` | A test delivery is triggered manually |
+  </Expandable>
+</ParamField>
+
+<ParamField body="secret" type="string">
+  An optional shared secret used to sign payloads. When provided, the API includes an `X-Signature-256` header on every delivery containing an HMAC-SHA256 signature of the raw request body. If you omit this field, the API generates a secret automatically. You can retrieve the hint via `GET /v1/webhooks/:id` but cannot recover the full value after creation.
+</ParamField>
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.example.com/v1/webhooks \
+  --header 'Authorization: Bearer <access_token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "url": "https://your-app.example.com/webhooks/api",
+    "events": ["resource.created", "resource.deleted"],
+    "secret": "my_super_secret_string"
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.example.com/v1/webhooks",
+    headers={"Authorization": "Bearer <access_token>"},
+    json={
+        "url": "https://your-app.example.com/webhooks/api",
+        "events": ["resource.created", "resource.deleted"],
+        "secret": "my_super_secret_string",
+    },
+)
+webhook = response.json()  # 201 Created
+print(webhook["id"])
+```
+
+```javascript Node.js
+const response = await fetch("https://api.example.com/v1/webhooks", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer <access_token>",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    url: "https://your-app.example.com/webhooks/api",
+    events: ["resource.created", "resource.deleted"],
+    secret: "my_super_secret_string",
+  }),
+});
+const webhook = await response.json(); // 201 Created
+```
+
+</CodeGroup>
+
+### Example response
+
+```json 201 Created
+{
+  "id": "wh_01j2k3m4n5p6q7r8s9t0",
+  "url": "https://your-app.example.com/webhooks/api",
+  "events": ["resource.created", "resource.deleted"],
+  "secret": "my_super_secret_string",
+  "secret_hint": "...ring",
+  "created_at": "2024-09-15T10:00:00Z"
+}
+```
+
+<Note>
+  The `secret` field in the creation response contains the full plain-text secret. In all subsequent responses for this webhook, only `secret_hint` (the last four characters) is returned. Store the full secret securely now.
+</Note>
+
+---
+
+## GET /v1/webhooks
+
+Retrieve a list of all webhooks registered in your account.
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url https://api.example.com/v1/webhooks \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://api.example.com/v1/webhooks",
+    headers={"Authorization": "Bearer <access_token>"},
+)
+webhooks = response.json()  # 200 OK
+```
+
+```javascript Node.js
+const response = await fetch("https://api.example.com/v1/webhooks", {
+  headers: { Authorization: "Bearer <access_token>" },
+});
+const webhooks = await response.json(); // 200 OK
+```
+
+</CodeGroup>
+
+### Example response
+
+```json 200 OK
+{
+  "data": [
+    {
+      "id": "wh_01j2k3m4n5p6q7r8s9t0",
+      "url": "https://your-app.example.com/webhooks/api",
+      "events": ["resource.created", "resource.deleted"],
+      "secret_hint": "...ring",
+      "created_at": "2024-09-15T10:00:00Z"
+    },
+    {
+      "id": "wh_02a3b4c5d6e7f8g9h0i1",
+      "url": "https://your-app.example.com/webhooks/all",
+      "events": ["*"],
+      "secret_hint": "...xT9p",
+      "created_at": "2024-09-14T08:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## GET /v1/webhooks/:id
+
+Retrieve a single webhook by its unique ID.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the webhook to retrieve, e.g. `wh_01j2k3m4n5p6q7r8s9t0`.
+</ParamField>
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0 \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0",
+    headers={"Authorization": "Bearer <access_token>"},
+)
+webhook = response.json()  # 200 OK
+```
+
+```javascript Node.js
+const response = await fetch(
+  "https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0",
+  { headers: { Authorization: "Bearer <access_token>" } }
+);
+const webhook = await response.json(); // 200 OK
+```
+
+</CodeGroup>
+
+### Example response
+
+```json 200 OK
+{
+  "id": "wh_01j2k3m4n5p6q7r8s9t0",
+  "url": "https://your-app.example.com/webhooks/api",
+  "events": ["resource.created", "resource.deleted"],
+  "secret_hint": "...ring",
+  "created_at": "2024-09-15T10:00:00Z"
+}
+```
+
+---
+
+## DELETE /v1/webhooks/:id
+
+Permanently delete a webhook. After deletion, no further event deliveries are made to the associated URL.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the webhook to delete, e.g. `wh_01j2k3m4n5p6q7r8s9t0`.
+</ParamField>
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request DELETE \
+  --url https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0 \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+```python Python
+import requests
+
+requests.delete(
+    "https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0",
+    headers={"Authorization": "Bearer <access_token>"},
+)
+# 204 No Content — no response body
+```
+
+```javascript Node.js
+await fetch(
+  "https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0",
+  {
+    method: "DELETE",
+    headers: { Authorization: "Bearer <access_token>" },
+  }
+);
+// 204 No Content — no response body
+```
+
+</CodeGroup>
+
+A successful deletion returns **`204 No Content`** with an empty body. Any in-flight deliveries at the time of deletion may still be attempted, but no further deliveries will be scheduled.
+
+---
+
+## POST /v1/webhooks/:id/test
+
+Send a test `webhook.test` event to the registered endpoint. Use this to verify that your receiver is reachable, correctly parsing the payload, and returning a `2xx` status before you enable production traffic.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the webhook to test, e.g. `wh_01j2k3m4n5p6q7r8s9t0`.
+</ParamField>
+
+The test delivery contains a payload of type `webhook.test` with a `timestamp` and the webhook `id`. Your endpoint does not need to subscribe to `webhook.test` in its `events` list — test deliveries are always sent regardless of the subscription.
+
+### Example request
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0/test \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0/test",
+    headers={"Authorization": "Bearer <access_token>"},
+)
+result = response.json()  # 200 OK
+print(result["delivery_id"])
+```
+
+```javascript Node.js
+const response = await fetch(
+  "https://api.example.com/v1/webhooks/wh_01j2k3m4n5p6q7r8s9t0/test",
+  {
+    method: "POST",
+    headers: { Authorization: "Bearer <access_token>" },
+  }
+);
+const { delivery_id } = await response.json(); // 200 OK
+```
+
+</CodeGroup>
+
+### Example response
+
+```json 200 OK
+{
+  "delivery_id": "del_09z8y7x6w5v4u3t2s1r0",
+  "webhook_id": "wh_01j2k3m4n5p6q7r8s9t0",
+  "event": "webhook.test",
+  "status": "delivered",
+  "delivered_at": "2024-09-15T10:05:00Z"
+}
+```
+
+<ResponseField name="delivery_id" type="string">
+  Unique identifier for this delivery attempt. You can use this ID to correlate deliveries in your own logs.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Outcome of the delivery attempt. `"delivered"` means your endpoint responded with a `2xx` status. `"failed"` means the endpoint was unreachable or returned a non-`2xx` status.
+</ResponseField>
+
+---
+
+<Tip>
+  **Use the test endpoint during development before enabling live events.** Point your webhook to a local tunnel (e.g. using a tool like ngrok or Cloudflare Tunnel) and call `POST /v1/webhooks/:id/test` to inspect the exact payload shape, validate your HMAC signature verification logic, and confirm your server returns `200 OK` — all without waiting for real events to occur in production.
+</Tip>

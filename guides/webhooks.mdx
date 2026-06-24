@@ -1,0 +1,254 @@
+---
+title: "Receive Real-Time Event Notifications with API Webhooks"
+sidebarTitle: "Webhooks"
+description: "Configure webhook endpoints to receive instant notifications, verify payload signatures for security, and handle retries when your server is unavailable."
+---
+
+Webhooks let the API push notifications to your server the moment something happens — a resource is created, updated, or deleted — instead of requiring you to poll for changes. You register a URL, and the API sends an HTTP `POST` request to that URL every time a matching event occurs. This keeps your integration snappy and dramatically reduces unnecessary API traffic.
+
+<Warning>
+  Always verify the webhook signature on every incoming request before processing the payload. Skipping verification means your endpoint will accept forged requests from anyone who discovers its URL.
+</Warning>
+
+## Setting up a webhook
+
+<Steps>
+
+  ### Create a publicly accessible HTTPS endpoint
+
+  Your webhook receiver must be reachable from the internet over **HTTPS**. Plain HTTP endpoints are rejected. During local development you can use a tunnelling tool such as [ngrok](https://ngrok.com) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to expose a local server to the internet temporarily.
+
+  Your endpoint must:
+  - Accept `POST` requests.
+  - Return a `2xx` status code within **10 seconds** (see [Retry behavior](#retry-behavior)).
+  - Be reachable on a standard port (`443` recommended).
+
+  ### Register the endpoint via POST /v1/webhooks
+
+  Once your server is running, register its URL with the API. You can also filter which event types are delivered to keep your handler focused.
+
+  ```bash
+  curl -X POST https://api.example.com/v1/webhooks \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "url": "https://your-server.example.com/webhooks/api",
+      "events": ["resource.created", "resource.updated", "resource.deleted"],
+      "description": "Production event receiver"
+    }'
+  ```
+
+  The response contains your webhook's `id` and a `secret` value. **Copy the secret immediately** — it is shown only once and is used to verify every incoming payload.
+
+  ```json
+  {
+    "id": "wh_01HXYZ9999ABCD",
+    "object": "webhook",
+    "url": "https://your-server.example.com/webhooks/api",
+    "events": ["resource.created", "resource.updated", "resource.deleted"],
+    "secret": "whsec_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+    "created_at": "2024-06-01T12:00:00Z"
+  }
+  ```
+
+  ### Verify the signature
+
+  Before you process any event, confirm it was sent by the API and not a third party. Every delivery includes an `X-Webhook-Signature` header containing an HMAC-SHA256 digest. See [Verifying webhook signatures](#verifying-webhook-signatures) below for implementation details.
+
+  ### Respond with 200 OK
+
+  Your endpoint must respond with any `2xx` status code within 10 seconds. The response body is ignored, so a simple empty `200 OK` is fine. Perform any time-consuming processing (database writes, downstream API calls, email sends) asynchronously after returning the response.
+
+  ```http
+  HTTP/1.1 200 OK
+  Content-Length: 0
+  ```
+
+  If your handler throws an error or takes longer than 10 seconds, the delivery is marked as failed and the retry schedule begins.
+
+</Steps>
+
+## Event payload structure
+
+Every webhook delivery is a `POST` request with a `Content-Type: application/json` body. All event payloads share the same top-level structure:
+
+```json
+{
+  "id": "evt_01HXYZ1234WXYZ",
+  "object": "event",
+  "event_type": "resource.created",
+  "created_at": "2024-06-01T12:05:33Z",
+  "data": {
+    "id": "res_01HXYZ5678EFGH",
+    "object": "resource",
+    "name": "My First Resource",
+    "status": "active",
+    "tags": ["tutorial"],
+    "created_at": "2024-06-01T12:05:33Z",
+    "updated_at": "2024-06-01T12:05:33Z"
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique identifier for this specific delivery. Use this to deduplicate retried events. |
+| `object` | string | Always `"event"`. |
+| `event_type` | string | The type of event that occurred (see [Available event types](#available-event-types)). |
+| `created_at` | string | ISO 8601 timestamp of when the event was generated. |
+| `data` | object | The full resource object at the time the event was triggered. |
+
+## Verifying webhook signatures
+
+The API signs every delivery using **HMAC-SHA256** with your webhook's `secret`. The signature is the hex-encoded digest of the raw request body, sent in the `X-Webhook-Signature` header.
+
+To verify a delivery, compute the HMAC-SHA256 of the **raw request body bytes** using your secret, then compare it to the header value using a constant-time comparison to prevent timing attacks.
+
+<CodeGroup>
+
+```python Python
+import hashlib
+import hmac
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+WEBHOOK_SECRET = "whsec_your_secret_here"
+
+@app.route("/webhooks/api", methods=["POST"])
+def receive_webhook():
+    # Retrieve the signature from the header
+    signature = request.headers.get("X-Webhook-Signature", "")
+
+    # Compute expected HMAC-SHA256 over the raw body
+    expected = hmac.new(
+        WEBHOOK_SECRET.encode("utf-8"),
+        request.get_data(),          # raw bytes, not parsed JSON
+        hashlib.sha256,
+    ).hexdigest()
+
+    # Use constant-time comparison to prevent timing attacks
+    if not hmac.compare_digest(expected, signature):
+        abort(401, "Invalid signature")
+
+    event = request.get_json()
+    event_type = event["event_type"]
+
+    if event_type == "resource.created":
+        handle_resource_created(event["data"])
+    elif event_type == "resource.updated":
+        handle_resource_updated(event["data"])
+    elif event_type == "resource.deleted":
+        handle_resource_deleted(event["data"])
+
+    return "", 200
+
+
+def handle_resource_created(data):
+    print(f"Resource created: {data['id']}")
+
+def handle_resource_updated(data):
+    print(f"Resource updated: {data['id']}")
+
+def handle_resource_deleted(data):
+    print(f"Resource deleted: {data['id']}")
+```
+
+```javascript Node.js
+import crypto from "crypto";
+import express from "express";
+
+const app = express();
+const WEBHOOK_SECRET = "whsec_your_secret_here";
+
+// Use express.raw() so we can verify the signature against the raw body bytes
+app.post("/webhooks/api", express.raw({ type: "application/json" }), (req, res) => {
+  const signature = req.headers["x-webhook-signature"] ?? "";
+
+  // Compute expected HMAC-SHA256 over the raw body
+  const expected = crypto
+    .createHmac("sha256", WEBHOOK_SECRET)
+    .update(req.body)          // req.body is a Buffer when using express.raw()
+    .digest("hex");
+
+  // Use timingSafeEqual to prevent timing attacks
+  const sigBuffer = Buffer.from(signature, "utf8");
+  const expBuffer = Buffer.from(expected, "utf8");
+
+  if (
+    sigBuffer.length !== expBuffer.length ||
+    !crypto.timingSafeEqual(sigBuffer, expBuffer)
+  ) {
+    return res.status(401).send("Invalid signature");
+  }
+
+  const event = JSON.parse(req.body.toString("utf8"));
+
+  switch (event.event_type) {
+    case "resource.created":
+      handleResourceCreated(event.data);
+      break;
+    case "resource.updated":
+      handleResourceUpdated(event.data);
+      break;
+    case "resource.deleted":
+      handleResourceDeleted(event.data);
+      break;
+  }
+
+  res.status(200).send();
+});
+
+function handleResourceCreated(data) {
+  console.log("Resource created:", data.id);
+}
+function handleResourceUpdated(data) {
+  console.log("Resource updated:", data.id);
+}
+function handleResourceDeleted(data) {
+  console.log("Resource deleted:", data.id);
+}
+
+app.listen(3000);
+```
+
+</CodeGroup>
+
+<Note>
+  Always verify the signature against the **raw request body** before parsing it as JSON. Parsing first and then re-serializing can alter whitespace and produce a different byte sequence, causing verification to fail even for legitimate deliveries.
+</Note>
+
+## Available event types
+
+| Event type | Triggered when |
+|---|---|
+| `resource.created` | A new resource is successfully created. |
+| `resource.updated` | Any field on an existing resource is modified. |
+| `resource.deleted` | A resource is permanently deleted. |
+| `webhook.test` | You send a test delivery from the dashboard or the API. |
+
+You can subscribe to specific event types when registering a webhook, or pass `"events": ["*"]` to receive all events.
+
+## Retry behavior
+
+When your endpoint returns a non-`2xx` status code, times out, or is unreachable, the API schedules automatic retries using exponential backoff. The delivery is attempted up to **five times** before being marked permanently failed.
+
+| Attempt | Delay after previous failure |
+|---|---|
+| 1 (initial) | Immediate |
+| 2 | 1 minute |
+| 3 | 5 minutes |
+| 4 | 30 minutes |
+| 5 | 2 hours |
+
+Because the same event can be delivered more than once during retries, your handler should be **idempotent** — processing the same event twice should not cause duplicate side effects. Use the event `id` field as a deduplication key.
+
+<Accordion title="Viewing delivery logs and triggering manual retries">
+  You can inspect the full delivery history for any webhook — including request headers, response bodies, and timing — from the **Dashboard → Webhooks → Deliveries** panel. From there you can also manually replay any individual delivery to your endpoint without waiting for an automatic retry.
+
+  You can also retrieve delivery history via the API:
+
+  ```bash
+  curl https://api.example.com/v1/webhooks/wh_01HXYZ9999ABCD/deliveries \
+    -H "Authorization: Bearer YOUR_API_KEY"
+  ```
+</Accordion>

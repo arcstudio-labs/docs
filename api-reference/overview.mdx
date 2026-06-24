@@ -1,0 +1,56 @@
+---
+title: "API Reference Overview — v1 REST Endpoints Guide"
+sidebarTitle: "Overview"
+description: "Explore every REST endpoint available in v1. All requests and responses use JSON, with consistent error handling and naming conventions."
+---
+
+This reference covers every endpoint exposed by the API. The API is built on REST principles — you interact with it by sending HTTP requests to structured URLs, and every request and response body is formatted as JSON. All documentation here reflects the current stable release, **v1**.
+
+## Getting started
+
+If you're new to the API, the two guides below will get you up and running quickly. Authentication walks you through obtaining and using API keys, while the Quickstart gives you a working request in under five minutes.
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/authentication">
+    Learn how to generate API keys and attach them to every request using the
+    `Authorization` header.
+  </Card>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Make your first API call in minutes with a step-by-step walkthrough and
+    copy-ready code samples.
+  </Card>
+</CardGroup>
+
+## API conventions
+
+Every endpoint in this reference follows the same set of conventions. Keeping these rules in mind will save you time when building and debugging integrations.
+
+| Convention | Detail |
+|---|---|
+| **Content type** | All requests must include the header `Content-Type: application/json`. |
+| **Authentication** | Pass your API key in the `Authorization: Bearer <token>` header on every request. |
+| **Dates** | All date and timestamp fields use [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format in UTC — for example, `2024-06-15T10:30:00Z`. |
+| **IDs** | Every resource identifier is a [UUID v4](https://datatracker.ietf.org/doc/html/rfc4122) string — for example, `3fa85f64-5717-4562-b3fc-2c963f66afa6`. |
+
+<Tip>
+  Always store and pass IDs as strings. Even though UUIDs look like they contain
+  numbers, treating them as numeric types may cause precision loss in some
+  languages.
+</Tip>
+
+## Available resources
+
+The table below lists every top-level resource group available in v1, along with its base path. Detailed endpoint pages for each resource live under the corresponding section in the sidebar.
+
+| Resource | Base path | Description |
+|---|---|---|
+| **Resources** | `/v1/resources` | Core objects managed by the API. Create, read, update, and delete your primary resources here. |
+| **Webhooks** | `/v1/webhooks` | Register and manage webhook endpoints that receive real-time event notifications. |
+| **Auth — Tokens** | `/v1/auth/token` | Issue, inspect, and revoke API tokens for programmatic authentication. |
+
+<Note>
+  All endpoints are subject to rate limits. If you receive a `429 Too Many
+  Requests` response, check the `Retry-After` header and back off accordingly.
+  See the [rate limits guide](/guides/rate-limits) for per-endpoint quotas and
+  best practices for staying within them.
+</Note>

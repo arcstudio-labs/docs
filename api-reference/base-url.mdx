@@ -1,0 +1,68 @@
+---
+title: "API Base URL and Environments — Production and Sandbox"
+sidebarTitle: "Base URL"
+description: "Learn the production and sandbox base URLs, when to use each environment, and how their key prefixes and behaviors differ for safe testing."
+---
+
+Every request you send to the API must be prefixed with the correct base URL for your target environment. The API exposes two separate environments — **production** and **sandbox** — each with its own hostname and isolated data store. Choosing the right environment protects your live data during development and testing.
+
+## Environment base URLs
+
+| Environment | Base URL |
+|---|---|
+| **Production** | `https://api.example.com/v1` |
+| **Sandbox** | `https://sandbox.api.example.com/v1` |
+
+The examples below show the same `GET /resources` request targeted at each environment so you can see exactly how the base URL fits into a real call.
+
+<Tabs>
+  <Tab title="Production">
+    ```bash
+    curl https://api.example.com/v1/resources \
+      --request GET \
+      --header "Authorization: Bearer sk_live_••••••••••••••••" \
+      --header "Content-Type: application/json"
+    ```
+  </Tab>
+  <Tab title="Sandbox">
+    ```bash
+    curl https://sandbox.api.example.com/v1/resources \
+      --request GET \
+      --header "Authorization: Bearer sk_test_••••••••••••••••" \
+      --header "Content-Type: application/json"
+    ```
+  </Tab>
+</Tabs>
+
+## Differences between environments
+
+Although both environments implement identical endpoints and accept the same request shapes, their behavior and consequences differ significantly.
+
+<CardGroup cols={2}>
+  <Card title="Production" icon="circle-check">
+    Operates on **live data** and triggers **real side effects** — charges are
+    processed, emails are sent, and webhooks fire to your registered endpoints.
+    Use this environment only when you are ready to affect real users and
+    systems.
+  </Card>
+  <Card title="Sandbox" icon="flask">
+    Operates on **test data** and produces **no real side effects** — no charges
+    are processed, no external messages are sent. You are free to create,
+    modify, and delete objects without any consequences. Reset your sandbox data
+    at any time from the dashboard.
+  </Card>
+</CardGroup>
+
+<Note>
+  Sandbox API keys are entirely separate credentials from your production keys.
+  You can find and manage your sandbox keys on the **Sandbox** tab of the API
+  Keys page in the dashboard. Sandbox keys are prefixed with `sk_test_` to
+  distinguish them from production keys, which use the `sk_live_` prefix.
+</Note>
+
+<Warning>
+  Never use a sandbox API key against the production base URL, or a production
+  API key against the sandbox base URL. Mismatched key–environment pairs will
+  return a `401 Unauthorized` error. More importantly, accidentally running
+  production keys in an untrusted environment risks exposing live credentials.
+</Warning>
