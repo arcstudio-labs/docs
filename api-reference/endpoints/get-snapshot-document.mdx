@@ -5,7 +5,7 @@ description: "Return a fixed snapshot document as JSON or Markdown."
 api: "GET /v1/projects/{project_id}/scripts/{script_id}/snapshots/{snapshot_id}/document.{format}"
 ---
 
-Use `format` as `json` or `md`. Fixed snapshot documents are immutable and may be cached.
+Use `format` as `json` or `md`. Document data for a fixed snapshot does not change.
 
 ```bash
 curl "https://api.arcstudiopro.com/v1/projects/project_.../scripts/script_.../snapshots/snapshot_.../document.json" \

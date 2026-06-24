@@ -5,7 +5,7 @@ description: "Return the current latest snapshot document as JSON or Markdown."
 api: "GET /v1/projects/{project_id}/scripts/{script_id}/latest_snapshot_document.{format}"
 ---
 
-Use `format` as `json` or `md`. This URL points to a moving target and returns `Cache-Control: no-store`.
+Use `format` as `json` or `md`. This URL points to the current latest snapshot document.
 
 ```bash
 curl "https://api.arcstudiopro.com/v1/projects/project_.../scripts/script_.../latest_snapshot_document.json" \
