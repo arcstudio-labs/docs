@@ -1,0 +1,73 @@
+---
+title: "Data model"
+sidebarTitle: "Data model"
+description: "Objects returned by the Arc Studio API, including rich text JSON."
+---
+
+## Script
+
+```json
+{
+  "id": "script_...",
+  "object": "script",
+  "project_id": "project_...",
+  "title": "Pilot",
+  "subtitle": null,
+  "written_by": "Writer Name",
+  "logline": null,
+  "genre": null,
+  "created_at": "2026-06-24T10:00:00Z",
+  "last_edited_at": "2026-06-24T12:00:00Z",
+  "links": {}
+}
+```
+
+`latest_snapshot_id` and `snapshots` are included by `GET /scripts/{script_id}`.
+
+## Snapshot
+
+```json
+{
+  "id": "snapshot_...",
+  "object": "script_snapshot",
+  "description": null,
+  "revision_color": null,
+  "created_at": "2026-06-24T12:00:00Z",
+  "formats": ["json", "md"]
+}
+```
+
+## Document
+
+```json
+{
+  "object": "document",
+  "paragraphs": [
+    {
+      "id": "paragraph-id",
+      "object": "script_paragraph",
+      "kind": "action",
+      "text": "FADE IN:",
+      "marks": []
+    }
+  ]
+}
+```
+
+## Rich text
+
+Paragraphs expose plain text plus character-range marks.
+
+```json
+{
+  "text": "FADE IN:",
+  "marks": [
+    { "start": 0, "end": 4, "type": "bold" },
+    { "start": 5, "end": 8, "type": "link", "value": "https://example.com" }
+  ]
+}
+```
+
+`start` and `end` are zero-based offsets into `text`. Marks may overlap. Supported types are `bold`, `italic`, `underline`, `strikethrough`, `upper-case`, `highlight`, `text-color`, and `link`.
+
+Paragraphs can include `alternates`, which use the same `text` and `marks` shape.

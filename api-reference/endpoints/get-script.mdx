@@ -1,0 +1,29 @@
+---
+title: "Get script"
+sidebarTitle: "Get script"
+description: "Return script metadata and its snapshot list."
+api: "GET /v1/projects/{project_id}/scripts/{script_id}"
+---
+
+Returns script metadata, `latest_snapshot_id`, and snapshot metadata.
+
+```bash
+curl "https://api.arcstudiopro.com/v1/projects/project_.../scripts/script_..." \
+  -H "Authorization: Bearer $ARC_STUDIO_API_KEY"
+```
+
+```json
+{
+  "id": "script_...",
+  "object": "script",
+  "project_id": "project_...",
+  "title": "Pilot",
+  "latest_snapshot_id": "snapshot_...",
+  "links": {
+    "self": "/v1/projects/project_.../scripts/script_...",
+    "latest_snapshot_document": "/v1/projects/project_.../scripts/script_.../latest_snapshot_document.json",
+    "snapshots": "/v1/projects/project_.../scripts/script_.../snapshots"
+  },
+  "snapshots": []
+}
+```

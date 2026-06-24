@@ -1,0 +1,23 @@
+---
+title: "Get snapshot document"
+sidebarTitle: "Get snapshot document"
+description: "Return a fixed snapshot document as JSON or Markdown."
+api: "GET /v1/projects/{project_id}/scripts/{script_id}/snapshots/{snapshot_id}/document.{format}"
+---
+
+Use `format` as `json` or `md`. Fixed snapshot documents are immutable and may be cached.
+
+```bash
+curl "https://api.arcstudiopro.com/v1/projects/project_.../scripts/script_.../snapshots/snapshot_.../document.json" \
+  -H "Authorization: Bearer $ARC_STUDIO_API_KEY"
+```
+
+```json
+{
+  "id": "snapshot_...",
+  "object": "script_snapshot",
+  "script_id": "script_...",
+  "document": { "object": "document", "paragraphs": [] },
+  "stashes": []
+}
+```

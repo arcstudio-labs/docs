@@ -1,0 +1,23 @@
+---
+title: "List scripts"
+sidebarTitle: "List scripts"
+description: "Return scripts available to a project API key."
+api: "GET /v1/projects/{project_id}/scripts"
+---
+
+Returns scripts for the project.
+
+```bash
+curl "https://api.arcstudiopro.com/v1/projects/project_.../scripts" \
+  -H "Authorization: Bearer $ARC_STUDIO_API_KEY"
+```
+
+```json
+{
+  "object": "list",
+  "url": "/v1/projects/project_.../scripts",
+  "has_more": false,
+  "project": { "id": "project_...", "object": "project", "name": "My Project" },
+  "data": []
+}
+```

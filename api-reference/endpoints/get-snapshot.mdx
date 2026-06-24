@@ -1,0 +1,24 @@
+---
+title: "Get snapshot"
+sidebarTitle: "Get snapshot"
+description: "Return metadata for one script snapshot."
+api: "GET /v1/projects/{project_id}/scripts/{script_id}/snapshots/{snapshot_id}"
+---
+
+Returns metadata for one snapshot. It does not include document content.
+
+```bash
+curl "https://api.arcstudiopro.com/v1/projects/project_.../scripts/script_.../snapshots/snapshot_..." \
+  -H "Authorization: Bearer $ARC_STUDIO_API_KEY"
+```
+
+```json
+{
+  "id": "snapshot_...",
+  "object": "script_snapshot",
+  "description": null,
+  "revision_color": null,
+  "created_at": "2026-06-24T12:00:00Z",
+  "formats": ["json", "md"]
+}
+```

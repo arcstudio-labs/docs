@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "API Docs",
+  "name": "Arc Studio API",
   "theme": "luma",
   "colors": {
     "primary": "#ef7025",
@@ -15,14 +15,14 @@
   "navbar": {
     "primary": {
       "type": "button",
-      "label": "Get API Key",
-      "href": "https://dashboard.example.com/api-keys"
+      "label": "Open Arc Studio",
+      "href": "https://www.arcstudiopro.com"
     }
   },
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Guides",
         "groups": [
           {
             "group": "Get Started",
@@ -30,31 +30,6 @@
               "introduction",
               "quickstart",
               "authentication"
-            ]
-          },
-          {
-            "group": "Core Concepts",
-            "pages": [
-              "concepts/requests",
-              "concepts/responses",
-              "concepts/errors",
-              "concepts/pagination"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/first-api-call",
-              "guides/rate-limits",
-              "guides/webhooks",
-              "guides/sdks"
-            ]
-          },
-          {
-            "group": "Resources",
-            "pages": [
-              "resources/changelog",
-              "resources/faq"
             ]
           }
         ]
@@ -66,16 +41,18 @@
             "group": "Overview",
             "pages": [
               "api-reference/overview",
-              "api-reference/base-url",
-              "api-reference/versioning"
+              "api-reference/data"
             ]
           },
           {
             "group": "Endpoints",
             "pages": [
-              "api-reference/endpoints/authentication",
-              "api-reference/endpoints/resources",
-              "api-reference/endpoints/webhooks"
+              "api-reference/endpoints/list-scripts",
+              "api-reference/endpoints/get-script",
+              "api-reference/endpoints/list-snapshots",
+              "api-reference/endpoints/get-snapshot",
+              "api-reference/endpoints/get-snapshot-document",
+              "api-reference/endpoints/get-latest-snapshot-document"
             ]
           }
         ]

@@ -1,56 +1,43 @@
 ---
-title: "API Reference Overview — v1 REST Endpoints Guide"
+title: "API reference"
 sidebarTitle: "Overview"
-description: "Explore every REST endpoint available in v1. All requests and responses use JSON, with consistent error handling and naming conventions."
+description: "Arc Studio v1 API endpoints and conventions."
 ---
 
-This reference covers every endpoint exposed by the API. The API is built on REST principles — you interact with it by sending HTTP requests to structured URLs, and every request and response body is formatted as JSON. All documentation here reflects the current stable release, **v1**.
+Base URL: `https://api.arcstudiopro.com`
 
-## Getting started
+Authenticate every request:
 
-If you're new to the API, the two guides below will get you up and running quickly. Authentication walks you through obtaining and using API keys, while the Quickstart gives you a working request in under five minutes.
+```http
+Authorization: Bearer YOUR_API_KEY
+```
 
-<CardGroup cols={2}>
-  <Card title="Authentication" icon="lock" href="/authentication">
-    Learn how to generate API keys and attach them to every request using the
-    `Authorization` header.
-  </Card>
-  <Card title="Quickstart" icon="bolt" href="/quickstart">
-    Make your first API call in minutes with a step-by-step walkthrough and
-    copy-ready code samples.
-  </Card>
-</CardGroup>
+## Endpoints
 
-## API conventions
-
-Every endpoint in this reference follows the same set of conventions. Keeping these rules in mind will save you time when building and debugging integrations.
-
-| Convention | Detail |
+| Endpoint | Description |
 |---|---|
-| **Content type** | All requests must include the header `Content-Type: application/json`. |
-| **Authentication** | Pass your API key in the `Authorization: Bearer <token>` header on every request. |
-| **Dates** | All date and timestamp fields use [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format in UTC — for example, `2024-06-15T10:30:00Z`. |
-| **IDs** | Every resource identifier is a [UUID v4](https://datatracker.ietf.org/doc/html/rfc4122) string — for example, `3fa85f64-5717-4562-b3fc-2c963f66afa6`. |
+| [List scripts](/api-reference/endpoints/list-scripts) | List scripts in a project |
+| [Get script](/api-reference/endpoints/get-script) | Get script metadata and snapshots |
+| [List snapshots](/api-reference/endpoints/list-snapshots) | List snapshot metadata |
+| [Get snapshot](/api-reference/endpoints/get-snapshot) | Get one snapshot metadata object |
+| [Get snapshot document](/api-reference/endpoints/get-snapshot-document) | Get a fixed document as JSON or Markdown |
+| [Get latest snapshot document](/api-reference/endpoints/get-latest-snapshot-document) | Get the latest document as JSON or Markdown |
 
-<Tip>
-  Always store and pass IDs as strings. Even though UUIDs look like they contain
-  numbers, treating them as numeric types may cause precision loss in some
-  languages.
-</Tip>
+Use [Data model](/api-reference/data) for object shapes and rich text details.
 
-## Available resources
+## Caching
 
-The table below lists every top-level resource group available in v1, along with its base path. Detailed endpoint pages for each resource live under the corresponding section in the sidebar.
+Fixed snapshot document URLs are immutable. Latest snapshot document URLs return `Cache-Control: no-store`.
 
-| Resource | Base path | Description |
-|---|---|---|
-| **Resources** | `/v1/resources` | Core objects managed by the API. Create, read, update, and delete your primary resources here. |
-| **Webhooks** | `/v1/webhooks` | Register and manage webhook endpoints that receive real-time event notifications. |
-| **Auth — Tokens** | `/v1/auth/token` | Issue, inspect, and revoke API tokens for programmatic authentication. |
+## Errors
 
-<Note>
-  All endpoints are subject to rate limits. If you receive a `429 Too Many
-  Requests` response, check the `Retry-After` header and back off accordingly.
-  See the [rate limits guide](/guides/rate-limits) for per-endpoint quotas and
-  best practices for staying within them.
-</Note>
+```json
+{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "script_not_found",
+    "message": "No script found for that id.",
+    "request_id": "req_..."
+  }
+}
+```
