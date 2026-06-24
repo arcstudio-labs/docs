@@ -3,14 +3,18 @@
   "name": "Arc Studio API",
   "theme": "luma",
   "colors": {
-    "primary": "#ef7025",
-    "light": "#eec9bc",
-    "dark": "#4fa1ab"
+    "primary": "#4C1BB8",
+    "light": "#786CFF",
+    "dark": "#4C1BB8"
   },
-  "favicon": "/favicon.svg",
+  "favicon": {
+    "light": "/images/favicon128.png",
+    "dark": "/favicon.svg"
+  },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/images/logo_top_512.png",
+    "dark": "/images/logo_dark.png",
+    "href": "https://www.arcstudiopro.com"
   },
   "navbar": {
     "primary": {
@@ -61,5 +65,8 @@
   },
   "footer": {
     "socials": {}
+  },
+  "icons": {
+    "library": "lucide"
   }
 }
