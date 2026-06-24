@@ -8,11 +8,11 @@
     "dark": "#4C1BB8"
   },
   "favicon": {
-    "light": "/images/favicon128.png",
-    "dark": "/favicon.svg"
+    "light": "/images/favicon.png",
+    "dark": "/images/favicon.png"
   },
   "logo": {
-    "light": "/images/logo_top_512.png",
+    "light": "/images/favicon.png",
     "dark": "/images/logo_dark.png",
     "href": "https://www.arcstudiopro.com"
   },
