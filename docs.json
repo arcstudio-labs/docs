@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "Arc Studio API",
+  "name": "Arc Studio Help Center",
   "theme": "luma",
   "colors": {
     "primary": "#4C1BB8",
@@ -20,14 +20,85 @@
     "primary": {
       "type": "button",
       "label": "Open Arc Studio",
-      "href": "https://www.arcstudiopro.com"
+      "href": "https://www.app.arcstudiopro.com"
     }
   },
   "navigation": {
-    "tabs": [
+    "pages": [
+      "index",
       {
-        "tab": "Guides",
-        "groups": [
+        "group": "Guides",
+        "pages": [
+          "writing-your-first-page",
+          "intro-to-script-elements",
+          "switching-to-arc-studio-for-experienced-screenwriters",
+          "quick-formatting-shortcuts-and-keystrokes-guide",
+          "collaboration-and-feedback",
+          "draft-and-revision-management",
+          "the-plot-board-outlining",
+          "notes-app",
+          "productive-screenwriting",
+          "season-outlines-and-bibles",
+          "backing-up-your-script",
+          "advanced-formatting",
+          "the-stash",
+          "the-sidebar",
+          "why-switch-to-arc-studio",
+          "receiving-and-managing-feedback",
+          "comment-mode",
+          "ai-faq",
+          "story-element-images",
+          "script-chat",
+          "arc-studio-classroom",
+          "script-reports",
+          "table-read",
+          "branch-and-merge"
+        ]
+      },
+      {
+        "group": "How Tos",
+        "pages": [
+          {
+            "group": "Account management",
+            "pages": []
+          },
+          {
+            "group": "Outlining",
+            "pages": []
+          },
+          {
+            "group": "History",
+            "pages": []
+          },
+          {
+            "group": "Feedback and Collaboration",
+            "pages": []
+          },
+          {
+            "group": "Document & Script Management",
+            "pages": []
+          },
+          {
+            "group": "Editing, Format and Layout",
+            "pages": []
+          },
+          {
+            "group": "Viewing Settings",
+            "pages": []
+          },
+          {
+            "group": "Notes & Research",
+            "pages": []
+          },
+          {
+            "group": "Projects and Folders",
+            "pages": []
+          }
+        ]
+      },
+      {
+        "group": "API Reference",
+        "pages": [
           {
             "group": "Get Started",
             "pages": [
@@ -35,17 +106,12 @@
               "quickstart",
               "authentication"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
+          },
           {
             "group": "Overview",
             "pages": [
-              "api-reference/overview",
-              "api-reference/data"
+              "api-reference/data",
+              "api-reference/overview"
             ]
           },
           {
@@ -60,9 +126,6 @@
             ]
           }
         ]
-      },
-      {
-        "tab": "How Tos"
       }
     ]
   },
@@ -71,5 +134,6 @@
   },
   "icons": {
     "library": "lucide"
-  }
+  },
+  "description": "Arc Studio's Help Center"
 }
