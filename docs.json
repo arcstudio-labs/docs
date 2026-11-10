@@ -20,7 +20,7 @@
     "primary": {
       "type": "button",
       "label": "Open Arc Studio",
-      "href": "https://www.app.arcstudiopro.com"
+      "href": "https://app.arcstudiopro.com"
     }
   },
   "navigation": {
@@ -150,5 +150,16 @@
   "icons": {
     "library": "lucide"
   },
-  "description": "Arc Studio's Help Center"
+  "description": "Arc Studio's Help Center",
+  "styling": {
+    "codeblocks": {
+      "theme": "red"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/how-tos/account-management/how-do-i-know-if-my-mac-has-intel-processor-or-apple-m1",
+      "destination": "/how-tos/account-management/how-do-i-know-if-my-mac-has-intel-processor-or-apple-silicon"
+    }
+  ]
 }
