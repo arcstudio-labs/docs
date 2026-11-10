@@ -27,104 +27,119 @@
     "pages": [
       "index",
       {
-        "group": "Guides",
+        "group": "Getting Started",
         "pages": [
-          "writing-your-first-page",
-          "intro-to-script-elements",
-          "switching-to-arc-studio-for-experienced-screenwriters",
-          "quick-formatting-shortcuts-and-keystrokes-guide",
-          "collaboration-and-feedback",
-          "draft-and-revision-management",
-          "the-plot-board-outlining",
-          "notes-app",
-          "productive-screenwriting",
-          "season-outlines-and-bibles",
-          "backing-up-your-script",
-          "advanced-formatting",
-          "the-stash",
-          "the-sidebar",
-          "why-switch-to-arc-studio",
-          "receiving-and-managing-feedback",
-          "comment-mode",
-          "ai-faq",
-          "story-element-images",
-          "script-chat",
-          "arc-studio-classroom",
-          "script-reports",
-          "table-read",
-          "branch-and-merge"
+          "guides/writing-your-first-page",
+          "guides/intro-to-script-elements",
+          "guides/switching-to-arc-studio-for-experienced-screenwriters",
+          "guides/quick-formatting-shortcuts-and-keystrokes-guide",
+          "guides/productive-screenwriting",
+          "guides/backing-up-your-script"
         ]
       },
       {
-        "group": "How Tos",
+        "group": "Advanced Features",
         "pages": [
-          {
-            "group": "Account management",
-            "pages": []
-          },
-          {
-            "group": "Outlining",
-            "pages": []
-          },
-          {
-            "group": "History",
-            "pages": []
-          },
-          {
-            "group": "Feedback and Collaboration",
-            "pages": []
-          },
-          {
-            "group": "Document & Script Management",
-            "pages": []
-          },
-          {
-            "group": "Editing, Format and Layout",
-            "pages": []
-          },
-          {
-            "group": "Viewing Settings",
-            "pages": []
-          },
-          {
-            "group": "Notes & Research",
-            "pages": []
-          },
-          {
-            "group": "Projects and Folders",
-            "pages": []
-          }
+          "guides/collaboration-and-feedback",
+          "guides/draft-and-revision-management",
+          "guides/notes-app",
+          "guides/table-read",
+          "guides/branch-and-merge",
+          "guides/advanced-formatting",
+          "guides/the-stash",
+          "guides/script-reports"
         ]
       },
       {
-        "group": "API Reference",
+        "group": "Outlining",
+        "pages": [
+          "guides/the-plot-board-outlining",
+          "guides/season-outlines-and-bibles"
+        ]
+      },
+      {
+        "group": "Classrooms & Teaching",
+        "pages": [
+          "guides/arc-studio-classroom"
+        ]
+      },
+      {
+        "group": "More",
         "pages": [
           {
-            "group": "Get Started",
+            "group": "\"How To\" Articles",
             "pages": [
-              "introduction",
-              "quickstart",
-              "authentication"
+              {
+                "group": "Account management",
+                "pages": []
+              },
+              {
+                "group": "Outlining",
+                "pages": []
+              },
+              {
+                "group": "History",
+                "pages": []
+              },
+              {
+                "group": "Feedback and Collaboration",
+                "pages": []
+              },
+              {
+                "group": "Document & Script Management",
+                "pages": []
+              },
+              {
+                "group": "Editing, Format and Layout",
+                "pages": []
+              },
+              {
+                "group": "Viewing Settings",
+                "pages": []
+              },
+              {
+                "group": "Notes & Research",
+                "pages": []
+              },
+              {
+                "group": "Projects and Folders",
+                "pages": []
+              }
             ]
           },
           {
-            "group": "Overview",
+            "group": "API Reference",
             "pages": [
-              "api-reference/data",
-              "api-reference/overview"
+              {
+                "group": "Get Started",
+                "pages": [
+                  "introduction",
+                  "quickstart",
+                  "authentication"
+                ]
+              },
+              {
+                "group": "Overview",
+                "pages": [
+                  "api-reference/data",
+                  "api-reference/overview"
+                ]
+              },
+              {
+                "group": "Endpoints",
+                "pages": [
+                  "api-reference/endpoints/list-scripts",
+                  "api-reference/endpoints/get-script",
+                  "api-reference/endpoints/list-snapshots",
+                  "api-reference/endpoints/get-snapshot",
+                  "api-reference/endpoints/get-snapshot-document",
+                  "api-reference/endpoints/get-latest-snapshot-document"
+                ]
+              }
             ]
           },
-          {
-            "group": "Endpoints",
-            "pages": [
-              "api-reference/endpoints/list-scripts",
-              "api-reference/endpoints/get-script",
-              "api-reference/endpoints/list-snapshots",
-              "api-reference/endpoints/get-snapshot",
-              "api-reference/endpoints/get-snapshot-document",
-              "api-reference/endpoints/get-latest-snapshot-document"
-            ]
-          }
+          "guides/why-switch-to-arc-studio",
+          "guides/ai-faq"
         ]
       }
     ]
