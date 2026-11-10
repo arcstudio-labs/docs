@@ -161,5 +161,10 @@
       "source": "/how-tos/account-management/how-do-i-know-if-my-mac-has-intel-processor-or-apple-m1",
       "destination": "/how-tos/account-management/how-do-i-know-if-my-mac-has-intel-processor-or-apple-silicon"
     }
-  ]
+  ],
+  "errors": {
+    "404": {
+      "redirect": false
+    }
+  }
 }
